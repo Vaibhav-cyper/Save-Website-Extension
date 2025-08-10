@@ -2,6 +2,9 @@
   "name": "save_website_extension",
   "private": true,
   "version": "0.0.1",
+  "description": "Save your websites with tags and revisit them quickly.",
+  "pricing": "Free",
+  "preview": "https://www.pingprospect.com/",
   "type": "module",
   "scripts": {
     "dev": "vite",

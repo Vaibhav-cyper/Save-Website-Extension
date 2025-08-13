@@ -183,3 +183,106 @@ Place PNG icons in `icons/` at sizes 16, 32, 48, 128. Update `manifest.json` if 
 ## License
 
 MIT
+
+
+# 🧠 Storage & Sync Architecture Plan
+
+## ✅ Recommended: Dual Storage — IndexedDB (Local) + Remote Database (Paid Sync)
+
+### How It Works
+- **On Save**:  
+  Store data in IndexedDB and push to backend *if* the user has paid sync enabled.
+  
+- **On Extension Load**:  
+  Show data instantly from IndexedDB, then update in the background from the backend.
+
+---
+
+### ✅ Pros
+- **Instant load** via local cache.
+- **Offline support** — users can save/view sites without internet.
+- **Conflict handling** is easier — merge local changes with remote when online.
+
+---
+
+### ⚠️ Cons
+- Slightly more code to maintain local + remote sync.
+
+---
+
+## Why Dual Storage Is Better for Your Use Case
+
+- **Free users** → IndexedDB acts as full storage; no backend required.
+- **Paid users** → Get IndexedDB + backend sync for cross-device access.
+- **If sync fails** due to network issues, data is still safe locally.
+
+---
+
+# 🛠️ Why Supabase with PostgreSQL + JSONB Is a Middle Ground
+
+### Benefits of JSONB in PostgreSQL
+- Store flexible JSON like `{ name, url, tags, category }` — similar to NoSQL.
+- Still query using SQL when needed:  
+  `WHERE data->>'category' = 'Productivity'`
+- Gradual schema evolution:  
+  Start flexible, normalize later without full migration.
+
+---
+
+## 🧪 Example MVP Schema (Supabase + JSONB)
+
+### Table: `sites`
+
+| Column      | Type      | Description                                      |
+|-------------|-----------|--------------------------------------------------|
+| id          | uuid      | Primary key                                      |
+| user_id     | uuid      | FK to `auth.users` / `users.uid`                             |
+| data        | jsonb     | Stores `{ name, url, tags[], category, dateAdded }`     |
+| created_at  | timestamp | Auto-set                                         |
+
+### Table: `users` (via `auth.users`)
+
+| Column              | Type        | Description                                        |
+|---------------------|-------------|--------------------------------------------|
+| uid                 | UUID / TEXT | Supabase Auth UID                          |
+| email               | TEXT        | Unique identifier                          |
+| plan                | TEXT        | `free` or `paid`                           |
+| plan_validity       | TEXT        | `monthly` or `yearly`                      |
+| subscription_start  | TIMESTAMP   | subscription started                  |
+| subscription_end    | TIMESTAMP   | Expiry date                                |
+| created_at          | TIMESTAMP   | Auto-filled                                |
+| updated_at          | TIMESTAMP   | Auto-updated                               |
+
+
+## 🎯 Why This Design Works
+### ✅ Technical Benefits
+- ***Fast load**: Data from IndexedDB shows up instantly.
+- **Offline support**: Users can interact without internet.
+- **Conflict resilience**: Local edits merged safely when reconnected.
+- **Scalable evolution**: Use JSONB early on, then normalize seamlessly.
+- **Security**: Supabase Row Level Security (RLS) ensures users access only their own data.
+- **Fast MVP launch** — no need for 3–4 separate tables.
+- **Flexible storage** — add fields like `faviconUrl` or `notes` without migrations.
+- **SQL queries still possible** — example:
+
+```sql
+SELECT * FROM sites
+WHERE user_id = 'abc-123'
+AND data->>'category' = 'Productivity';
+
+```
+## 🧠 Business Logic Alignment
+
+- **Free users**: Light-weight local storage only and Show Ads.
+- **Paid users**: Cloud sync across devices + local fallback.
+- **Subscription metadata**: Easily integrated for analytics, billing, and feature gating.
+
+---
+
+## 📈 Future Extensions
+
+- Add tags/projects/categories to relational tables as performance needs grow.
+- Integrate API analytics or daily usage quotas using RLS policies.
+- Enable multi-device sync, push updates, and conflict resolution via server-side rules.
+
+---

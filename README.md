@@ -183,3 +183,4 @@ Place PNG icons in `icons/` at sizes 16, 32, 48, 128. Update `manifest.json` if 
 ## License
 
 MIT
+

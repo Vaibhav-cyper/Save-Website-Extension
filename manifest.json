@@ -1,25 +1,40 @@
 {
   "manifest_version": 3,
-  "name": "Save Website ",
-  "short_name": "SaveWebsite",
-  "version": "0.0.1",
-  "description": "Save your websites with tags and revisit them quickly.",
+  "name": "Save This Site",
+  "short_name": "savethissite",
+  "version": "1.0.0",
+  "description": "Save This Site is a chrome extension that saves any website with tags & categories so you can find and revisit it anytime.",
+  "icons": {
+    "16": "public/icon_16x16.png",
+    "32": "public/icon_32x32.png",
+    "128": "public/icon_128x128.png"
+  },
   "action": {
-    "default_title": "Save website",
+    "default_title": "Save This Site",
     "default_popup": "index.html"
   },
-  "permissions": ["storage", "activeTab", "contextMenus"],
-  "content_scripts": [
-    {
-      "js": ["src/content.tsx"]
-    }
+  
+  "permissions": ["storage", "activeTab", "contextMenus", "identity"],
+  "host_permissions": [
+    "https://*.supabase.co/*",
+    "https://accounts.google.com/*",
+    "https://www.googleapis.com/*"
   ],
+  "oauth2": {
+    "client_id": "926309554068-6sijifmj5nlqtacp8c30il5na6vmbjo3.apps.googleusercontent.com",
+    "scopes": ["openid", "email", "profile"]
+  },
+  "background": {
+    "service_worker": "src/service/background.ts",
+    "type": "module"
+  },
+
   "commands": {
     "save-current-tab": {
       "suggested_key": {
-        "default": "Ctrl+Shift+S"
+        "default": "Ctrl+Shift+Y"
       },
-      "description": "Save the current tab with tags"
+      "description": "Save any website with tags & categories so you can find and revisit it anytime."
     }
   }
 }

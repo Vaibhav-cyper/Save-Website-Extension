@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Search, User, RefreshCw } from "lucide-react";
+import { Plus, Search, User } from "lucide-react";
 import type { Website, FormData } from "@/types/Website";
 import { WebsiteCard } from "@/components/WebsiteCard";
 import { SaveWebsiteModal } from "@/components/SaveWebsiteModal";
@@ -16,7 +16,7 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
-  const [isSyncing, setIsSyncing] = useState(false);
+  
 
   // Get Saved Sites and Handle keyboard shortcuts
   useEffect(() => {
@@ -126,19 +126,7 @@ function App() {
     }
   };
 
-  const handleSync = async () => {
-    setIsSyncing(true);
-    try {
-      // Simulate sync operation
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      toast.success("Websites synced successfully!");
-    } catch (error) {
-      console.error("Sync failed:", error);
-      toast.error("Sync failed. Please try again.");
-    } finally {
-      setIsSyncing(false);
-    }
-  };
+  
 
   return (
     <div className="w-full max-w-lg min-w-md  mx-auto bg-gray-50 min-h-screen">
@@ -165,15 +153,7 @@ function App() {
             >
               <User className="w-4 h-4 text-gray-600" />
             </button>
-            <button
-              onClick={handleSync}
-              disabled={isSyncing}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-              aria-label="Sync websites"
-              title="Sync"
-            >
-              <RefreshCw className={`w-4 h-4 text-gray-600 ${isSyncing ? "animate-spin" : ""}`} />
-            </button>
+            
           </div>
         </div>
 

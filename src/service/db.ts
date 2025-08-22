@@ -17,7 +17,7 @@ class StoreSite {
 
       // handle on upgraded
       this.#request.onupgradeneeded = () => {
-        console.log("DB Open Successfully");
+        
         this.#db = this.#request?.result ?? null;
         if (!this.#db?.objectStoreNames.contains("SitesDatabase")) {
           this.#store = this.#db?.createObjectStore("SitesDatabase", { keyPath: "WebsiteId" });
@@ -97,31 +97,6 @@ class StoreSite {
       };
       getRequest.onerror = (event) => {
         const error = `Error Occured while getting all sites : ${(event.target as IDBRequest).error}`;
-        console.error(error);
-        reject(new Error(error));
-      };
-    });
-  }
-  async getsite(WebsiteURL?: string): Promise<any> {
-    await this.#dbReady;
-
-    if (!this.#db) {
-      throw new Error("Database not initialized");
-    }
-
-    const transaction = this.#db.transaction("SitesDatabase", "readonly");
-    const store = transaction.objectStore("SitesDatabase");
-
-    // If WebsiteURL is provided, get specific site, otherwise get all sites
-    const getRequest = WebsiteURL ? store.get(WebsiteURL) : store.getAll();
-
-    return new Promise((resolve, reject) => {
-      getRequest.onsuccess = (e) => {
-        console.log("getRequest", (e.target as IDBRequest).result);
-        resolve((e.target as IDBRequest).result);
-      };
-      getRequest.onerror = (event) => {
-        const error = `Error occurred while getting site(s): ${(event.target as IDBRequest).error}`;
         console.error(error);
         reject(new Error(error));
       };

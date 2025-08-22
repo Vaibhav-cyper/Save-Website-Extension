@@ -15,7 +15,6 @@ export default function AuthButton() {
   }
 
   if (isAuthenticated && user) {
-    console.log("user:", user);
     return (
       <div className="flex flex-col space-y-2">
         <div className="flex items-center space-x-2 p-2 bg-gray-100 rounded-md">

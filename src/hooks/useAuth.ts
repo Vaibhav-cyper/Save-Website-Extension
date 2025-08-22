@@ -18,9 +18,16 @@ export function useAuth(): UseAuthReturn {
   useEffect(() => {
     // Initialize auth state
     const initializeAuth = async () => {
-      const currentUser = await AuthService.getCurrentUser();
-      setUser(currentUser);
-      setIsLoading(false);
+      try {
+        const currentUser = await AuthService.getCurrentUser();
+        setUser(currentUser);
+      } catch (err) {
+    // Avoid logging user objects in production; uncomment for local debugging only.
+    // if (process.env.NODE_ENV !== 'production') console.debug('useAuth init');
+        console.error("Failed to initialize auth state", err);
+      } finally {
+        setIsLoading(false);
+      }
     };
     console.log('user' , user);
     initializeAuth();

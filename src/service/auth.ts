@@ -6,7 +6,9 @@ class Service {
   #manifest = getChromeManifest();
   #url = new URL("https://accounts.google.com/o/oauth2/auth");
   #currentUser: User | null = null;
-  #reditecturi = chrome.identity.getRedirectURL("google")
+  #redirectUri = chrome.identity.getRedirectURL("google");
+  #authStateListener: any | null = null;
+
   signIn(): Promise<{ success: boolean; error?: string }> {
     return new Promise((resolve) => {
       if (!this.#manifest?.oauth2?.client_id) {
@@ -15,10 +17,9 @@ class Service {
       this.#url.searchParams.set("client_id", this.#manifest.oauth2.client_id);
       this.#url.searchParams.set("response_type", "id_token");
       this.#url.searchParams.set("access_type", "offline");
-      this.#url.searchParams.set("redirect_uri", this.#reditecturi);
+      this.#url.searchParams.set("redirect_uri", this.#redirectUri);
       this.#url.searchParams.set("scope", this.#manifest.oauth2?.scopes?.join(" ") || "");
-      console.log('url', this.#url.href);
-      console.log("redirect_uri", this.#reditecturi);
+
       chrome.identity.launchWebAuthFlow(
         {
           url: this.#url.href,
@@ -40,7 +41,6 @@ class Service {
           const { data: sessionData, error: sessionError } = await supabase.auth.signInWithIdToken({
             provider: "google",
             token: token,
-            
           });
 
           if (sessionError) {
@@ -50,7 +50,7 @@ class Service {
 
           if (sessionData.user) {
             this.#currentUser = sessionData.user;
-            console.log("Successfully signed in:", sessionData.user);
+
             return resolve({ success: true });
           } else {
             return resolve({ success: false, error: "No user data received" });
@@ -61,9 +61,14 @@ class Service {
   }
 
   async signOut() {
-    await supabase.auth.signOut({ scope: "local" });
+    try {
+      await supabase.auth.signOut({ scope: "local" });
+      this.#currentUser = null;
+    } catch (error) {
+      console.error("Sign out error:", error);
+      throw error;
+    }
   }
-
   async getCurrentUser(): Promise<User | null> {
     const {
       data: { session },
@@ -72,10 +77,11 @@ class Service {
       this.#currentUser = session?.user || null;
     }
     // listen for auth change
-    supabase.auth.onAuthStateChange((_event, session) => {
-      this.#currentUser = session?.user || null;
-      // console.log("Auth state changed:", event, session?.user);
-    });
+    if (this.#authStateListener === null) {
+      this.#authStateListener = supabase.auth.onAuthStateChange((_event, session) => {
+        this.#currentUser = session?.user || null;
+      });
+    }
     return this.#currentUser;
   }
 

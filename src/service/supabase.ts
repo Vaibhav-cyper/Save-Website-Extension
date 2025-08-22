@@ -9,6 +9,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.error('Missing Supabase configuration. Please check your environment variables.')
   console.error('VITE_SUPABASE_URL:', supabaseUrl ? 'Set' : 'Missing')
   console.error('VITE_SUPABASE_ANON_KEY:', supabaseAnonKey ? 'Set' : 'Missing')
+  throw new Error('Missing require configuration')
 }
 
 const createCustomStorage = () => {

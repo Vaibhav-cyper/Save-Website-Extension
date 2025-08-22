@@ -3,7 +3,7 @@
   "name": "Save This Site",
   "short_name": "savethissite",
   "version": "1.0.0",
-  "description": "Save This Site is an chrome extension that saves any website with tags & categories so you can find and revisit it anytime.",
+  "description": "Save This Site is a chrome extension that saves any website with tags & categories so you can find and revisit it anytime.",
   "icons": {
     "16": "public/icon_16x16.png",
     "32": "public/icon_32x32.png",

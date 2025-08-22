@@ -57,3 +57,5 @@ export const getChromeExtensionId = (): string | null => {
     return null
   }
 }
+
+

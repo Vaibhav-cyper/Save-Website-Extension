@@ -21,6 +21,46 @@ export const SaveWebsiteModal: React.FC<SaveWebsiteModalProps> = ({ isOpen, onCl
   const modalRef = useRef<HTMLDivElement>(null);
   const firstInputRef = useRef<HTMLInputElement>(null);
 
+  // Keep reference to setFormData stable across re-renders
+  const setFormDataRef = useRef(setFormData);
+  useEffect(() => {
+    setFormDataRef.current = setFormData;
+  });
+
+  // Message listener effect - runs once on mount
+  useEffect(() => {
+    const isChromeRuntimeAvailable = typeof chrome !== 'undefined' 
+      && chrome.runtime 
+      && chrome.runtime.onMessage;
+
+    if (!isChromeRuntimeAvailable) {
+      console.warn('Chrome runtime API is not available');
+      return;
+    }
+    const saveWebsiteListener = (msg: any, sendResponse: any) => {
+      console.log(`Listener Request Received:`, msg);
+      if (msg.type === "SITE_SAVED") {
+        const {title ,url} = msg.payload;
+        
+        setFormDataRef.current({
+          name: title,
+          url: url,
+          category: "Work"
+        });
+        
+        // Send response back to background script
+        sendResponse({ success: true });
+      }
+    };
+    
+    chrome.runtime.onMessage.addListener(saveWebsiteListener);
+
+    return () => {
+      chrome.runtime.onMessage.removeListener(saveWebsiteListener);
+    };
+  }, []);
+
+  // Modal open/close effect
   useEffect(() => {
     if (isOpen) {
       firstInputRef.current?.focus();
@@ -31,27 +71,8 @@ export const SaveWebsiteModal: React.FC<SaveWebsiteModalProps> = ({ isOpen, onCl
       setErrors({});
     }
 
-    const saveWebsiteListener = (msg: any,  sendResponse: any) => {
-      console.log(`Listener Request Received:`, msg);
-      if (msg.type === "SITE_SAVED") {
-        console.log(`Saved Request Received:`, msg.payload);
-        
-        setFormData({
-          name : msg.payload.title,
-          url : msg.payload.url,
-          category : "Work"
-        })
-        
-        // Send response back to background script
-        sendResponse({ success: true });
-      }
-    };
-    
-    chrome.runtime.onMessage.addListener(saveWebsiteListener);
-
     return () => {
       document.body.style.overflow = "unset";
-      chrome.runtime.onMessage.removeListener(saveWebsiteListener);
     };
   }, [isOpen]);
 

@@ -24,7 +24,7 @@ function App() {
       setIsLoading(true);
       try {
         const result = await StoreService.getAllsites();
-        console.log("saved site ", result);
+        
         setWebsites(result);
       } catch (error) {
         console.error("Failed to get website:", error);
@@ -42,22 +42,22 @@ function App() {
       }
     };
 
-    const saveWebsiteListener = (msg: any,  sendResponse: any) => {
-      console.log(`Listener Request Received:`, msg);
+    const saveWebsiteListener = (msg: any, sendResponse: any) => {
+      
       if (msg.type === "SITE_SAVED") {
-        console.log(`Saved Request Received:`, msg.payload);
-        
         // Show notification that shortcut was triggered
-        showNotification("Keyboard shortcut activated! Opening save modal...");
-        
+        showNotification("Keyboard shortcut activated!");
+
         // Auto-open the modal
         setIsModalOpen(true);
-        
+
         // Send response back to background script
         sendResponse({ success: true });
+        return true; // Keep the message channel open for async response
       }
+      return false; // Indicate synchronous handling for other message types
     };
-    
+
     chrome.runtime.onMessage.addListener(saveWebsiteListener);
     window.addEventListener("keydown", handleKeyDown);
     handleGetSavedSites();
@@ -82,9 +82,9 @@ function App() {
 
   const filteredWebsites = websites?.filter(
     (website) =>
-      website.WebsiteName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      website.WebsiteURL.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      website.Category.toLowerCase().includes(searchTerm.toLowerCase())
+      website.WebsiteName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      website.WebsiteURL?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      website.Category?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const showNotification = (message: string) => {
@@ -113,7 +113,7 @@ function App() {
 
       // Simulate API call delay
       await new Promise((resolve) => setTimeout(resolve, 500));
-      const websiteId = Date.now().toString();
+      const websiteId = crypto.randomUUID();
       await StoreService.insert(user.id, websiteId, formData.name, formData.url, formData.category);
 
       // Refresh the websites list after saving

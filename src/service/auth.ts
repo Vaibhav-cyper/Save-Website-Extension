@@ -1,171 +1,87 @@
+import { getChromeManifest } from "@/utils/extension";
 import { supabase } from "./supabase";
 import type { User } from "@supabase/supabase-js";
-import { isChromeIdentityAvailable, getChromeExtensionId } from "../utils/extension";
 
-export class AuthService {
-  private static instance: AuthService;
-  private currentUser: User | null = null;
+class Service {
+  #manifest = getChromeManifest();
+  #url = new URL("https://accounts.google.com/o/oauth2/auth");
+  #currentUser: User | null = null;
+  #reditecturi = chrome.identity.getRedirectURL("google")
+  signIn(): Promise<{ success: boolean; error?: string }> {
+    return new Promise((resolve) => {
+      if (!this.#manifest?.oauth2?.client_id) {
+        return resolve({ success: false, error: "OAuth2 configuration is missing in manifest" });
+      }
+      this.#url.searchParams.set("client_id", this.#manifest.oauth2.client_id);
+      this.#url.searchParams.set("response_type", "id_token");
+      this.#url.searchParams.set("access_type", "offline");
+      this.#url.searchParams.set("redirect_uri", this.#reditecturi);
+      this.#url.searchParams.set("scope", this.#manifest.oauth2?.scopes?.join(" ") || "");
+      console.log('url', this.#url.href);
+      console.log("redirect_uri", this.#reditecturi);
+      chrome.identity.launchWebAuthFlow(
+        {
+          url: this.#url.href,
+          interactive: true,
+        },
+        async (redirectedTo?: string) => {
+          if (chrome.runtime.lastError || !redirectedTo) {
+            return resolve({ success: false, error: chrome.runtime.lastError?.message || "Authentication failed" });
+          }
 
-  private constructor() {
-    this.initializeAuth();
-  }
+          const url = new URL(redirectedTo);
+          const params = new URLSearchParams(url.hash.substring(1));
+          const token = params.get("id_token");
 
-  public static getInstance(): AuthService {
-    if (!AuthService.instance) {
-      AuthService.instance = new AuthService();
-    }
-    return AuthService.instance;
-  }
+          if (!token) {
+            return resolve({ success: false, error: "ID token not found in redirect URL" });
+          }
 
-  private async initializeAuth() {
-    // Check for existing session
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    this.currentUser = session?.user || null;
+          const { data: sessionData, error: sessionError } = await supabase.auth.signInWithIdToken({
+            provider: "google",
+            token: token,
+            
+          });
 
-    // Listen for auth changes
-    supabase.auth.onAuthStateChange((event, session) => {
-      this.currentUser = session?.user || null;
-      console.log("Auth state changed:", event, session?.user);
+          if (sessionError) {
+            console.error("Session error:", sessionError);
+            return resolve({ success: false, error: sessionError.message });
+          }
+
+          if (sessionData.user) {
+            this.#currentUser = sessionData.user;
+            console.log("Successfully signed in:", sessionData.user);
+            return resolve({ success: true });
+          } else {
+            return resolve({ success: false, error: "No user data received" });
+          }
+        }
+      );
     });
   }
 
- 
-  public async signInWithGoogle(): Promise<{ success: boolean; error?: string }> {
-    try {
-      // Check if we're in a Chrome extension context
-      if (!isChromeIdentityAvailable()) {
-        console.error("Chrome extension APIs not available");
-        return { success: false, error: "Chrome extension environment required for Google sign-in" };
-      }
+  async signOut() {
+    await supabase.auth.signOut({ scope: "local" });
+  }
 
-      const extensionId = getChromeExtensionId();
-      if (!extensionId) {
-        console.error("Cannot get Chrome extension ID");
-        return { success: false, error: "Cannot get Chrome extension ID" };
-      }
-
-      // Use Supabase's OAuth URL with Chrome extension redirect
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: `https://${extensionId}.chromiumapp.org/`,
-          queryParams: {
-            access_type: "offline",
-            prompt: "consent",
-          },
-        },
-      });
-
-      if (error) {
-        console.error("Supabase OAuth error:", error);
-        return { success: false, error: error.message };
-      }
-
-      if (!data.url) {
-        return { success: false, error: "No OAuth URL received from Supabase" };
-      }
-
-      return new Promise((resolve) => {
-        chrome.identity.launchWebAuthFlow(
-          {
-            url: data.url,
-            interactive: true,
-          },
-          async (redirectedTo) => {
-            if (chrome.runtime.lastError) {
-              console.error("OAuth error:", chrome.runtime.lastError);
-              resolve({ success: false, error: chrome.runtime.lastError.message });
-              return;
-            }
-
-            if (!redirectedTo) {
-              resolve({ success: false, error: "No redirect URL received" });
-              return;
-            }
-
-            try {
-              // Extract the URL fragment which contains the tokens
-              const redirectUrl = new URL(redirectedTo);
-              const hashParams = new URLSearchParams(redirectUrl.hash.substring(1));
-
-              const accessToken = hashParams.get("access_token");
-              const refreshToken = hashParams.get("refresh_token");
-              // const expiresIn = hashParams.get('expires_in')
-              // const tokenType = hashParams.get('token_type')
-
-              if (!accessToken) {
-                resolve({ success: false, error: "No access token received" });
-                return;
-              }
-
-              // Set the session manually
-              const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
-                access_token: accessToken,
-                refresh_token: refreshToken || "",
-              });
-
-              if (sessionError) {
-                console.error("Session error:", sessionError);
-                resolve({ success: false, error: sessionError.message });
-                return;
-              }
-
-              if (sessionData.user) {
-                this.currentUser = sessionData.user;
-                console.log("Successfully signed in:", sessionData.user);
-                resolve({ success: true });
-              } else {
-                resolve({ success: false, error: "No user data received" });
-              }
-            } catch (parseError) {
-              console.error("Error parsing auth response:", parseError);
-              resolve({ success: false, error: "Failed to parse authentication response" });
-            }
-          }
-        );
-      });
-    } catch (error) {
-      console.error("Sign in error:", error);
-      return { success: false, error: "Failed to initiate Google sign-in" };
+  async getCurrentUser(): Promise<User | null> {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession(); // getcurrent session
+    if (session) {
+      this.#currentUser = session?.user || null;
     }
+    // listen for auth change
+    supabase.auth.onAuthStateChange((_event, session) => {
+      this.#currentUser = session?.user || null;
+      // console.log("Auth state changed:", event, session?.user);
+    });
+    return this.#currentUser;
   }
 
-  public async signOut(): Promise<void> {
-    try {
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error("Sign out error:", error);
-      } else {
-        this.currentUser = null;
-        console.log("Successfully signed out");
-      }
-    } catch (error) {
-      console.error("Sign out error:", error);
-    }
-  }
-
-  public getCurrentUser(): User | null {
-    return this.currentUser;
-  }
-
-  public isAuthenticated(): boolean {
-    return this.currentUser !== null;
-  }
-
-  public async getAccessToken(): Promise<string | null> {
-    try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      return session?.access_token || null;
-    } catch (error) {
-      console.error("Error getting access token:", error);
-      return null;
-    }
+  isAuthenticated(): boolean {
+    return this.#currentUser !== null;
   }
 }
 
-// Export a singleton instance
-export const authService = AuthService.getInstance();
+export const AuthService = new Service();

@@ -14,15 +14,25 @@
     "default_popup": "index.html"
   },
   
-  "permissions": ["storage", "activeTab", "contextMenus" , "identity"],
+  "permissions": ["storage", "activeTab", "contextMenus", "identity"],
+  "host_permissions": [
+    "https://*.supabase.co/*",
+    "https://accounts.google.com/*",
+    "https://www.googleapis.com/*"
+  ],
   "oauth2": {
-    "client_id": "928627350926-uf2oiecploj35nb30ha10a18j23idv9v.apps.googleusercontent.com",
+    "client_id": "926309554068-6sijifmj5nlqtacp8c30il5na6vmbjo3.apps.googleusercontent.com",
     "scopes": ["openid", "email", "profile"]
   },
+  "background": {
+    "service_worker": "src/service/background.ts",
+    "type": "module"
+  },
+
   "commands": {
     "save-current-tab": {
       "suggested_key": {
-        "default": "Ctrl+Shift+S"
+        "default": "Ctrl+Shift+Y"
       },
       "description": "Save any website with tags & categories so you can find and revisit it anytime."
     }

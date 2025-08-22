@@ -1,63 +1,65 @@
-import { useState, useEffect } from 'react'
-import { authService } from '../service/auth'
-import type { User } from '@supabase/supabase-js'
+import { useState, useEffect } from "react";
+import { AuthService } from "../service/auth";
+import type { User } from "@supabase/supabase-js";
 
 export interface UseAuthReturn {
-  user: User | null
-  isAuthenticated: boolean
-  isLoading: boolean
-  signInWithGoogle: () => Promise<{ success: boolean; error?: string }>
-  signOut: () => Promise<void>
+  user: User | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  signInWithGoogle: () => Promise<{ success: boolean; error?: string }>;
+  signOut: () => Promise<void>;
 }
 
 export function useAuth(): UseAuthReturn {
-  const [user, setUser] = useState<User | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  
 
   useEffect(() => {
     // Initialize auth state
     const initializeAuth = async () => {
-      const currentUser = authService.getCurrentUser()
-      setUser(currentUser)
-      setIsLoading(false)
-    }
-
-    initializeAuth()
+      const currentUser = await AuthService.getCurrentUser();
+      setUser(currentUser);
+      setIsLoading(false);
+    };
+    console.log('user' , user);
+    initializeAuth();
 
     // You might want to set up a listener for auth state changes
     // This is a simplified version - in a real app you'd want to listen to Supabase auth events
-    const interval = setInterval(() => {
-      const currentUser = authService.getCurrentUser()
+    const interval = setInterval(async () => {
+      const currentUser = await AuthService.getCurrentUser();
       if (currentUser?.id !== user?.id) {
-        setUser(currentUser)
+        setUser(currentUser);
       }
-    }, 1000)
+    }, 1000);
 
-    return () => clearInterval(interval)
-  }, [user?.id])
+    return () => clearInterval(interval);
+  }, [user?.id]);
 
   const signInWithGoogle = async () => {
-    setIsLoading(true)
+    setIsLoading(true);
     try {
-      const result = await authService.signInWithGoogle();
-      if (result) {
-        setUser(authService.getCurrentUser())
+      const result = await AuthService.signIn();
+      if (result.success) {
+        const currentUser = await AuthService.getCurrentUser();
+        setUser(currentUser);
       }
-      return result
+      return result;
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const signOut = async () => {
-    setIsLoading(true)
+    setIsLoading(true);
     try {
-      await authService.signOut()
-      setUser(null)
+      await AuthService.signOut();
+      setUser(null);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return {
     user,
@@ -65,5 +67,5 @@ export function useAuth(): UseAuthReturn {
     isLoading,
     signInWithGoogle,
     signOut,
-  }
+  };
 }

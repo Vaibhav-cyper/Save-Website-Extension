@@ -1,6 +1,6 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { X, Save, AlertCircle } from 'lucide-react';
-import type { FormData, FormErrors } from '../types/Website';
+import React, { useState, useRef, useEffect } from "react";
+import { X, Save, AlertCircle } from "lucide-react";
+import type { FormData, FormErrors } from "../types/Website";
 
 interface SaveWebsiteModalProps {
   isOpen: boolean;
@@ -9,28 +9,13 @@ interface SaveWebsiteModalProps {
   isLoading: boolean;
 }
 
-const categories = [
-  'Work',
-  'Personal',
-  'Learning',
-  'Entertainment',
-  'Shopping',
-  'Social',
-  'News',
-  'Tools',
-  'Other'
-];
+const categories = ["Work", "Personal", "Learning", "Entertainment", "Shopping", "Social", "News", "Tools", "Other"];
 
-export const SaveWebsiteModal: React.FC<SaveWebsiteModalProps> = ({
-  isOpen,
-  onClose,
-  onSave,
-  isLoading
-}) => {
+export const SaveWebsiteModal: React.FC<SaveWebsiteModalProps> = ({ isOpen, onClose, onSave, isLoading }) => {
   const [formData, setFormData] = useState<FormData>({
-    name: '',
-    url: '',
-    category: 'Work'
+    name: "",
+    url: "",
+    category: "Work",
   });
   const [errors, setErrors] = useState<FormErrors>({});
   const modalRef = useRef<HTMLDivElement>(null);
@@ -39,15 +24,34 @@ export const SaveWebsiteModal: React.FC<SaveWebsiteModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       firstInputRef.current?.focus();
-      document.body.style.overflow = 'hidden';
+      document.body.style.overflow = "hidden";
     } else {
-      document.body.style.overflow = 'unset';
-      setFormData({ name: '', url: '', category: 'Work' });
+      document.body.style.overflow = "unset";
+      setFormData({ name: "", url: "", category: "Work" });
       setErrors({});
     }
 
+    const saveWebsiteListener = (msg: any,  sendResponse: any) => {
+      console.log(`Listener Request Received:`, msg);
+      if (msg.type === "SITE_SAVED") {
+        console.log(`Saved Request Received:`, msg.payload);
+        
+        setFormData({
+          name : msg.payload.title,
+          url : msg.payload.url,
+          category : "Work"
+        })
+        
+        // Send response back to background script
+        sendResponse({ success: true });
+      }
+    };
+    
+    chrome.runtime.onMessage.addListener(saveWebsiteListener);
+
     return () => {
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = "unset";
+      chrome.runtime.onMessage.removeListener(saveWebsiteListener);
     };
   }, [isOpen]);
 
@@ -55,20 +59,20 @@ export const SaveWebsiteModal: React.FC<SaveWebsiteModalProps> = ({
     const newErrors: FormErrors = {};
 
     if (!formData.name.trim()) {
-      newErrors.name = 'Website name is required';
+      newErrors.name = "Website name is required";
     }
 
     if (!formData.url.trim()) {
-      newErrors.url = 'URL is required';
+      newErrors.url = "URL is required";
     } else {
       const urlPattern = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/;
       if (!urlPattern.test(formData.url)) {
-        newErrors.url = 'Please enter a valid URL';
+        newErrors.url = "Please enter a valid URL";
       }
     }
 
     if (!formData.category) {
-      newErrors.category = 'Please select a category';
+      newErrors.category = "Please select a category";
     }
 
     setErrors(newErrors);
@@ -79,22 +83,22 @@ export const SaveWebsiteModal: React.FC<SaveWebsiteModalProps> = ({
     e.preventDefault();
     if (validateForm()) {
       let url = formData.url;
-      if (!url.startsWith('http://') && !url.startsWith('https://')) {
-        url = 'https://' + url;
+      if (!url.startsWith("http://") && !url.startsWith("https://")) {
+        url = "https://" + url;
       }
       onSave({ ...formData, url });
     }
   };
 
   const handleInputChange = (field: keyof FormData, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: undefined }));
+      setErrors((prev) => ({ ...prev, [field]: undefined }));
     }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Escape') {
+    if (e.key === "Escape") {
       onClose();
     }
   };
@@ -109,7 +113,7 @@ export const SaveWebsiteModal: React.FC<SaveWebsiteModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 backdrop-blur-sm bg-opacity-50 flex items-center justify-center z-50 p-4"
       onClick={handleBackdropClick}
       onKeyDown={handleKeyDown}
       tabIndex={-1}
@@ -145,9 +149,9 @@ export const SaveWebsiteModal: React.FC<SaveWebsiteModalProps> = ({
                 id="website-name"
                 type="text"
                 value={formData.name}
-                onChange={(e) => handleInputChange('name', e.target.value)}
+                onChange={(e) => handleInputChange("name", e.target.value)}
                 className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors duration-200 ${
-                  errors.name ? 'border-red-500' : 'border-gray-300'
+                  errors.name ? "border-red-500" : "border-gray-300"
                 }`}
                 placeholder="Enter website name"
                 aria-describedby={errors.name ? "name-error" : undefined}
@@ -168,9 +172,9 @@ export const SaveWebsiteModal: React.FC<SaveWebsiteModalProps> = ({
                 id="website-url"
                 type="url"
                 value={formData.url}
-                onChange={(e) => handleInputChange('url', e.target.value)}
+                onChange={(e) => handleInputChange("url", e.target.value)}
                 className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors duration-200 ${
-                  errors.url ? 'border-red-500' : 'border-gray-300'
+                  errors.url ? "border-red-500" : "border-gray-300"
                 }`}
                 placeholder="https://example.com"
                 aria-describedby={errors.url ? "url-error" : undefined}
@@ -190,9 +194,9 @@ export const SaveWebsiteModal: React.FC<SaveWebsiteModalProps> = ({
               <select
                 id="website-category"
                 value={formData.category}
-                onChange={(e) => handleInputChange('category', e.target.value)}
+                onChange={(e) => handleInputChange("category", e.target.value)}
                 className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors duration-200 ${
-                  errors.category ? 'border-red-500' : 'border-gray-300'
+                  errors.category ? "border-red-500" : "border-gray-300"
                 }`}
                 aria-describedby={errors.category ? "category-error" : undefined}
               >
@@ -230,7 +234,7 @@ export const SaveWebsiteModal: React.FC<SaveWebsiteModalProps> = ({
               ) : (
                 <Save className="w-4 h-4" />
               )}
-              {isLoading ? 'Saving...' : 'Save Website'}
+              {isLoading ? "Saving..." : "Save Website"}
             </button>
           </div>
         </form>

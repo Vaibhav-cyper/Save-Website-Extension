@@ -1,9 +1,10 @@
 export interface Website {
-  id: string;
-  name: string;
-  url: string;
-  category: string;
-  dateAdded: Date;
+  userId: string;
+  WebsiteId :string;
+  WebsiteName: string;
+  WebsiteURL: string;
+  Category: string;
+  WebsiteStatus: string;
 }
 
 export interface FormData {

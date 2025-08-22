@@ -1,16 +1,11 @@
 import React, { useRef, useEffect } from 'react';
-import { X, User, Mail } from 'lucide-react';
+import { X } from 'lucide-react';
+import AuthButton from './AuthButton';
 
 interface UserAccountModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
-
-// Mock user data - in a real app this would come from authentication
-const userData = {
-  name: 'John Doe',
-  email: 'john.doe@example.com'
-};
 
 export const UserAccountModal: React.FC<UserAccountModalProps> = ({
   isOpen,
@@ -71,34 +66,8 @@ export const UserAccountModal: React.FC<UserAccountModalProps> = ({
           </button>
         </div>
 
-        <div className="p-6">
-
-          <div className="space-y-4">
-            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-              <User className="w-5 h-5 text-gray-500" />
-              <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wide">Name</p>
-                <p className="text-sm font-medium text-gray-900">{userData.name}</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-              <Mail className="w-5 h-5 text-gray-500" />
-              <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wide">Email</p>
-                <p className="text-sm font-medium text-gray-900">{userData.email}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-6">
-            <button
-              onClick={onClose}
-              className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200"
-            >
-              Close
-            </button>
-          </div>
+        <div className="p-8">
+          <AuthButton />
         </div>
       </div>
     </div>

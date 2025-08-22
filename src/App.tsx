@@ -5,55 +5,12 @@ import { WebsiteCard } from "@/components/WebsiteCard";
 import { SaveWebsiteModal } from "@/components/SaveWebsiteModal";
 import { EmptyState } from "@/components/EmptyState";
 import { UserAccountModal } from "@/components/UserAccountModal";
-
-// login
-import { AuthButton } from "./components/AuthButton";
 import { useAuth } from "@/hooks/useAuth";
-import { getChromeExtensionId } from "./utils/extension";
-// import { SupabaseWebsiteService } from "./service/supabaseDb";
-// Sample data for demonstration
-const initialWebsites: Website[] = [
-  {
-    id: "1",
-    name: "GitHub",
-    url: "https://github.com",
-    category: "Work",
-    dateAdded: new Date("2024-01-15"),
-  },
-  {
-    id: "2",
-    name: "MDN Web Docs",
-    url: "https://developer.mozilla.org",
-    category: "Learning",
-    dateAdded: new Date("2024-01-14"),
-  },
-  {
-    id: "3",
-    name: "Figma",
-    url: "https://figma.com",
-    category: "Work",
-    dateAdded: new Date("2024-01-13"),
-  },
-  {
-    id: "4",
-    name: "YouTube",
-    url: "https://youtube.com",
-    category: "Entertainment",
-    dateAdded: new Date("2024-01-12"),
-  },
-  {
-    id: "5",
-    name: "Stack Overflow",
-    url: "https://stackoverflow.com",
-    category: "Learning",
-    dateAdded: new Date("2024-01-11"),
-  },
-];
-const extensionId = getChromeExtensionId()
-console.log('extensionId',extensionId)
+import { StoreService } from "@/service/db";
+
 function App() {
-  const { isAuthenticated } = useAuth();
-  const [websites, setWebsites] = useState<Website[]>(initialWebsites);
+  const { user, signInWithGoogle } = useAuth();
+  const [websites, setWebsites] = useState<Website[] | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -61,11 +18,73 @@ function App() {
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
 
-  const filteredWebsites = websites.filter(
+  // Get Saved Sites and Handle keyboard shortcuts
+  useEffect(() => {
+    const handleGetSavedSites = async () => {
+      setIsLoading(true);
+      try {
+        const result = await StoreService.getAllsites();
+        console.log("saved site ", result);
+        setWebsites(result);
+      } catch (error) {
+        console.error("Failed to get website:", error);
+        showNotification("Failed to load websites");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        if (e.key === "n") {
+          e.preventDefault();
+          setIsModalOpen(true);
+        }
+      }
+    };
+
+    const saveWebsiteListener = (msg: any,  sendResponse: any) => {
+      console.log(`Listener Request Received:`, msg);
+      if (msg.type === "SITE_SAVED") {
+        console.log(`Saved Request Received:`, msg.payload);
+        
+        // Show notification that shortcut was triggered
+        showNotification("Keyboard shortcut activated! Opening save modal...");
+        
+        // Auto-open the modal
+        setIsModalOpen(true);
+        
+        // Send response back to background script
+        sendResponse({ success: true });
+      }
+    };
+    
+    chrome.runtime.onMessage.addListener(saveWebsiteListener);
+    window.addEventListener("keydown", handleKeyDown);
+    handleGetSavedSites();
+
+    // Cleanup function - this runs when component unmounts
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      chrome.runtime.onMessage.removeListener(saveWebsiteListener);
+    };
+  }, []);
+
+  // Function to refresh websites list
+  const refreshWebsites = async () => {
+    try {
+      const result = await StoreService.getAllsites();
+      setWebsites(result);
+    } catch (error) {
+      console.error("Failed to refresh websites:", error);
+      showNotification("Failed to refresh websites");
+    }
+  };
+
+  const filteredWebsites = websites?.filter(
     (website) =>
-      website.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      website.url.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      website.category.toLowerCase().includes(searchTerm.toLowerCase())
+      website.WebsiteName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      website.WebsiteURL.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      website.Category.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const showNotification = (message: string) => {
@@ -85,20 +104,21 @@ function App() {
 
   const handleSaveWebsite = async (formData: FormData) => {
     setIsLoading(true);
-
     try {
+      if (user === null || user === undefined || !user.id) {
+        showNotification("You're not logged In");
+        await signInWithGoogle();
+        return;
+      }
+
       // Simulate API call delay
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      const websiteId = Date.now().toString();
+      await StoreService.insert(user.id, websiteId, formData.name, formData.url, formData.category);
 
-      const newWebsite: Website = {
-        id: Date.now().toString(),
-        name: formData.name,
-        url: formData.url,
-        category: formData.category,
-        dateAdded: new Date(),
-      };
+      // Refresh the websites list after saving
+      await refreshWebsites();
 
-      setWebsites((prev) => [newWebsite, ...prev]);
       setIsModalOpen(false);
       showNotification("Website saved successfully!");
     } catch (error) {
@@ -123,30 +143,8 @@ function App() {
     }
   };
 
-  const handleDeleteWebsite = (websiteId: string) => {
-    setWebsites((prev) => prev.filter((website) => website.id !== websiteId));
-    showNotification("Website deleted successfully!");
-  };
-
-  // Handle keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.ctrlKey || e.metaKey) {
-        if (e.key === "n") {
-          e.preventDefault();
-          setIsModalOpen(true);
-        }
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
-
   return (
-    <div className="w-full max-w-lg mx-auto bg-gray-50 max-h-screen">
-      {!isAuthenticated && <AuthButton />}
-
+    <div className="w-full max-w-lg min-w-md  mx-auto bg-gray-50 min-h-screen">
       {/* Header */}
       <div className="sticky top-0 z-40 bg-white border-b border-gray-200 px-4 py-3">
         <div className="flex items-center justify-between mb-3">
@@ -156,7 +154,7 @@ function App() {
             </div>
             <div>
               <h1 className="text-lg font-semibold text-gray-900">Save This Site</h1>
-              <p className="text-xs text-gray-500">{websites.length} sites saved</p>
+              <p className="text-xs text-gray-500">{websites?.length} sites saved</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -195,7 +193,7 @@ function App() {
 
       {/* Content */}
       <div className="flex-1 px-4 py-4 pb-20">
-        {filteredWebsites.length === 0 ? (
+        {(filteredWebsites ?? []).length === 0 ? (
           searchTerm ? (
             <div className="text-center py-12">
               <Search className="w-12 h-12 text-gray-300 mx-auto mb-3" />
@@ -206,12 +204,13 @@ function App() {
           )
         ) : (
           <div className="space-y-3">
-            {filteredWebsites.map((website) => (
+            {(filteredWebsites ?? []).map((website) => (
               <WebsiteCard
-                key={website.id}
+                key={website.WebsiteId}
                 website={website}
                 onOpenTab={handleOpenTab}
-                onDelete={handleDeleteWebsite}
+                showNotification={showNotification}
+                onDelete={refreshWebsites}
               />
             ))}
           </div>
@@ -219,7 +218,7 @@ function App() {
       </div>
 
       {/* Floating Add Button */}
-      {websites.length > 0 && (
+      {(websites ?? []).length > 0 && (
         <button
           onClick={() => setIsModalOpen(true)}
           className="fixed bottom-4 right-4 w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center z-50 hover:scale-105"

@@ -1,32 +1,43 @@
 import React from 'react';
 import { ExternalLink,  Trash2 } from 'lucide-react';
 import type { Website } from '../types/Website';
-
+import {StoreService} from "@/service/db"
 interface WebsiteCardProps {
   website: Website;
-  onOpenTab: (url: string) => void;
-  onDelete: (websiteId: string) => void;
+  onOpenTab: (WebsiteURL: string) => void;
+  showNotification: (message: string) => void;
+  onDelete?: () => void;
 }
 
-export const WebsiteCard: React.FC<WebsiteCardProps> = ({ website, onOpenTab, onDelete }) => {
-  const faviconURL = `https://www.google.com/s2/favicons?domain=${website.url}&sz=32`
+export const WebsiteCard: React.FC<WebsiteCardProps> = ({ website, onOpenTab, showNotification, onDelete }) => {
+  const faviconURL = `https://www.google.com/s2/favicons?domain=${website.WebsiteURL}&sz=32`
   const handleOpenTab = () => {
-    onOpenTab(website.url);
+    onOpenTab(website.WebsiteURL);
   };
 
-  const handleDelete = (e: React.MouseEvent) => {
+  const handleDelete = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (window.confirm(`Are you sure you want to delete "${website.name}"?`)) {
-      onDelete(website.id);
+    if (window.confirm(`Are you sure you want to delete "${website.WebsiteName}"?`)) {
+      try {
+        await StoreService.deleteSite(website.WebsiteURL);
+        showNotification("Website deleted successfully!");
+        // Call the onDelete callback to refresh the parent component
+        if (onDelete) {
+          onDelete();
+        }
+      } catch (error) {
+        console.error('Error deleting site:', error);
+        showNotification('Failed to delete the website. Please try again.');
+      }
     }
   };
 
-  const formatUrl = (url: string) => {
+  const formatUrl = (WebsiteURL: string) => {
     try {
-      const urlObj = new URL(url);
+      const urlObj = new URL(WebsiteURL);
       return urlObj.hostname.replace('www.', '');
     } catch {
-      return url;
+      return WebsiteURL;
     }
   };
 
@@ -39,13 +50,13 @@ export const WebsiteCard: React.FC<WebsiteCardProps> = ({ website, onOpenTab, on
           </div>
           <div className="flex-1 min-w-0">
             <h3 className="font-semibold text-gray-900 text-sm truncate mb-1">
-              {website.name}
+              {website.WebsiteName}
             </h3>
             <p className="text-xs text-gray-500 truncate mb-2">
-              {formatUrl(website.url)}
+              {formatUrl(website.WebsiteURL)}
             </p>
             <span className="inline-block px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-full">
-              {website.category}
+              {website.Category}
             </span>
           </div>
         </div>
@@ -53,14 +64,14 @@ export const WebsiteCard: React.FC<WebsiteCardProps> = ({ website, onOpenTab, on
           <button
             onClick={handleOpenTab}
             className="flex items-center justify-center w-8 h-8 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors duration-200 flex-shrink-0"
-            aria-label={`Open ${website.name} in new tab`}
+            aria-label={`Open ${website.WebsiteName} in new tab`}
           >
             <ExternalLink className="w-4 h-4" />
           </button>
           <button
             onClick={handleDelete}
             className="flex items-center justify-center w-8 h-8 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors duration-200 flex-shrink-0"
-            aria-label={`Delete ${website.name}`}
+            aria-label={`Delete ${website.WebsiteName}`}
           >
             <Trash2 className="w-4 h-4" />
           </button>

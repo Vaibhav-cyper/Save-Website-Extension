@@ -7,6 +7,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { UserAccountModal } from "@/components/UserAccountModal";
 import { useAuth } from "@/hooks/useAuth";
 import { StoreService } from "@/service/db";
+import { Toaster, toast} from 'sonner'
 
 function App() {
   const { user, signInWithGoogle } = useAuth();
@@ -14,7 +15,6 @@ function App() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [notification, setNotification] = useState<string | null>(null);
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
 
@@ -28,7 +28,7 @@ function App() {
         setWebsites(result);
       } catch (error) {
         console.error("Failed to get website:", error);
-        showNotification("Failed to load websites");
+        toast.error("Failed to load websites");
       } finally {
         setIsLoading(false);
       }
@@ -46,7 +46,7 @@ function App() {
       
       if (msg.type === "SITE_SAVED") {
         // Show notification that shortcut was triggered
-        showNotification("Keyboard shortcut activated!");
+        toast.success("Keyboard shortcut activated!");
 
         // Auto-open the modal
         setIsModalOpen(true);
@@ -76,7 +76,7 @@ function App() {
       setWebsites(result);
     } catch (error) {
       console.error("Failed to refresh websites:", error);
-      showNotification("Failed to refresh websites");
+      toast.error("Failed to refresh websites");
     }
   };
 
@@ -87,10 +87,7 @@ function App() {
       website.Category?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const showNotification = (message: string) => {
-    setNotification(message);
-    setTimeout(() => setNotification(null), 3000);
-  };
+  
 
   const handleOpenTab = (url: string) => {
     try {
@@ -98,7 +95,7 @@ function App() {
       window.open(url, "_blank", "noopener,noreferrer");
     } catch (error) {
       console.error("Failed to open tab:", error);
-      showNotification("Failed to open website");
+      toast.error("Failed to open website");
     }
   };
 
@@ -106,7 +103,7 @@ function App() {
     setIsLoading(true);
     try {
       if (user === null || user === undefined || !user.id) {
-        showNotification("You're not logged In");
+        toast.error("You're not logged In");
         await signInWithGoogle();
         return;
       }
@@ -120,10 +117,10 @@ function App() {
       await refreshWebsites();
 
       setIsModalOpen(false);
-      showNotification("Website saved successfully!");
+      toast.success("Website saved successfully!");
     } catch (error) {
       console.error("Failed to save website:", error);
-      showNotification("Failed to save website");
+      toast.error("Failed to save website");
     } finally {
       setIsLoading(false);
     }
@@ -134,10 +131,10 @@ function App() {
     try {
       // Simulate sync operation
       await new Promise((resolve) => setTimeout(resolve, 2000));
-      showNotification("Websites synced successfully!");
+      toast.success("Websites synced successfully!");
     } catch (error) {
       console.error("Sync failed:", error);
-      showNotification("Sync failed. Please try again.");
+      toast.error("Sync failed. Please try again.");
     } finally {
       setIsSyncing(false);
     }
@@ -145,6 +142,8 @@ function App() {
 
   return (
     <div className="w-full max-w-lg min-w-md  mx-auto bg-gray-50 min-h-screen">
+      {/* adding notification toaster */}
+      <Toaster position="top-center" richColors/> 
       {/* Header */}
       <div className="sticky top-0 z-40 bg-white border-b border-gray-200 px-4 py-3">
         <div className="flex items-center justify-between mb-3">
@@ -209,7 +208,6 @@ function App() {
                 key={website.WebsiteId}
                 website={website}
                 onOpenTab={handleOpenTab}
-                showNotification={showNotification}
                 onDelete={refreshWebsites}
               />
             ))}
@@ -240,12 +238,7 @@ function App() {
       {/* Account Modal */}
       <UserAccountModal isOpen={isAccountModalOpen} onClose={() => setIsAccountModalOpen(false)} />
 
-      {/* Notification */}
-      {notification && (
-        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg z-50 transition-all duration-300">
-          {notification}
-        </div>
-      )}
+      
     </div>
   );
 }

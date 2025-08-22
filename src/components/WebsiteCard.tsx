@@ -2,14 +2,14 @@ import React from 'react';
 import { ExternalLink,  Trash2 } from 'lucide-react';
 import type { Website } from '../types/Website';
 import {StoreService} from "@/service/db"
+import { toast } from 'sonner'
 interface WebsiteCardProps {
   website: Website;
   onOpenTab: (WebsiteURL: string) => void;
-  showNotification: (message: string) => void;
   onDelete?: () => void;
 }
 
-export const WebsiteCard: React.FC<WebsiteCardProps> = ({ website, onOpenTab, showNotification, onDelete }) => {
+export const WebsiteCard: React.FC<WebsiteCardProps> = ({ website, onOpenTab,  onDelete }) => {
   const faviconURL = `https://www.google.com/s2/favicons?domain=${website.WebsiteURL}&sz=32`
   const handleOpenTab = () => {
     onOpenTab(website.WebsiteURL);
@@ -20,14 +20,14 @@ export const WebsiteCard: React.FC<WebsiteCardProps> = ({ website, onOpenTab, sh
     if (window.confirm(`Are you sure you want to delete "${website.WebsiteName}"?`)) {
       try {
         await StoreService.deleteSite(website.WebsiteURL);
-        showNotification("Website deleted successfully!");
+        toast.success("Website deleted successfully!");
         // Call the onDelete callback to refresh the parent component
         if (onDelete) {
           onDelete();
         }
       } catch (error) {
         console.error('Error deleting site:', error);
-        showNotification('Failed to delete the website. Please try again.');
+        toast.error('Failed to delete the website. Please try again.');
       }
     }
   };

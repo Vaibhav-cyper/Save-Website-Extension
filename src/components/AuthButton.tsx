@@ -1,9 +1,9 @@
 import { useAuth } from "../hooks/useAuth";
 import { Button } from "./ui/button";
 import { LogOut, User, Loader2 } from "lucide-react";
-import { FaGoogle } from "react-icons/fa";
+
 export default function AuthButton() {
-  const { user, isLoading, signInWithGoogle, signOut, isAuthenticated } = useAuth();
+  const { user, isLoading,  signOut, isAuthenticated } = useAuth();
 
   if (isLoading) {
     return (
@@ -33,16 +33,5 @@ export default function AuthButton() {
     );
   }
 
-  return (
-    <div className="space-y-2">
-      <Button
-        onClick={signInWithGoogle}
-        className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-        disabled={isLoading}
-      >
-        <FaGoogle style={{ height: 18, width: 18 }} />
-        Sign in with Google
-      </Button>
-    </div>
-  );
+  
 }

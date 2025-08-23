@@ -129,7 +129,7 @@ function App() {
   
 
   return (
-    <div className="w-full max-w-lg min-w-md  mx-auto bg-gray-50 min-h-screen">
+    <div className="w-full max-w-lg min-w-md mx-auto  bg-gray-50 min-h-screen">
       {/* adding notification toaster */}
       <Toaster position="top-center" richColors/> 
       {/* Header */}
